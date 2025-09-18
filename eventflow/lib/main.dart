@@ -1,4 +1,7 @@
+// import 'package:eventflow/screens/event_details.dart';
 import 'package:flutter/material.dart';
+
+// ignore: unused_import
 import 'mainscreen.dart';
 
 void main() {
@@ -14,6 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MainScreen(), // Start directly on the Home page
-      );
+      // home: EventDetails(), // Start directly on the Home page
+    );
   }
 }
