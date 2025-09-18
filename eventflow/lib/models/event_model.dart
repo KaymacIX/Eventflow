@@ -11,7 +11,7 @@ class EventModel {
     required this.boxIsSelected,
   });
 
-  // dummy data
+  // DUMMY DATA
 
   static List<EventModel> getEvents() {
     List<EventModel> events = [];

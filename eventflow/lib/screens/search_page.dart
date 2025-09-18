@@ -1,61 +1,42 @@
 import 'package:flutter/material.dart';
 
-import 'package:eventflow/models/popular_event_model.dart';
-import 'package:eventflow/models/event_model.dart';
-
-import 'package:eventflow/widgets/app_bar.dart';
-import 'package:eventflow/widgets/popular_event_cards.dart';
-import 'package:eventflow/widgets/event_tiles.dart';
-// import 'package:eventflow/widgets/bottom_nav_bar.dart';
-
-
 class SearchPage extends StatefulWidget {
-  SearchPage({Key? key}) : super(key: key);
+  const SearchPage({super.key});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
 
 class _SearchPageState extends State<SearchPage> {
-
-  List<PopularEventModel> popularEvents = [];
-  List<EventModel> eventModel = [];
-
-  void _getPopularEvents() {
-    popularEvents = PopularEventModel.getPopularEvents();
-  }
-
-  void _getEvents() {
-    eventModel = EventModel.getEvents();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _getPopularEvents();
-    _getEvents();
-  }
-
   @override
   Widget build(BuildContext context) {
-    _getPopularEvents();
-    _getEvents();
     return Scaffold(
-      appBar: Appbar(),
       backgroundColor: Colors.white,
-      body: ListView(
+      appBar: AppBar(
+        title: Text('Search'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: Column(
         children: [
-          PopularEventCards(popularEvents: popularEvents),
-          SizedBox(height: 20),
-          EventTiles(eventModel: eventModel),
-          SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search events...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                  borderSide: BorderSide(color: Colors.grey, width: 1.0),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
-      
     );
   }
 }
-
-
-
-
