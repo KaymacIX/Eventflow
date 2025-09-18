@@ -39,7 +39,7 @@ class _HomeState extends State<Home> {
     _getPopularEvents();
     _getEvents();
     return Scaffold(
-      appBar: Appbar(),
+      appBar: Appbar(title: 'Home'),
       backgroundColor: Colors.white,
       body: ListView(
         children: [

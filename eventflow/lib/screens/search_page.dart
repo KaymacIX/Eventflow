@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eventflow/widgets/app_bar.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -12,12 +13,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Search'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
+      appBar: Appbar(title: 'Search'),
       body: Column(
         children: [
           Padding(
