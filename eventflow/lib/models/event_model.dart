@@ -2,13 +2,17 @@ class EventModel {
   String name;
   DateTime? dateTime;
   String location;
-  bool boxIsSelected = false; // New property to track selection state
+  bool boxIsSelected = false;
+  bool isFavourite = false;
+  bool hasTicket = false; // New property to track selection state
 
   EventModel({
     required this.name,
     this.dateTime,
     required this.location,
     required this.boxIsSelected,
+    required this.isFavourite,
+    required this.hasTicket,
   });
 
   // DUMMY DATA
@@ -22,6 +26,8 @@ class EventModel {
         dateTime: DateTime(2024, 7, 15, 19, 30),
         location: 'New York City',
         boxIsSelected: false,
+        isFavourite: true,
+        hasTicket: false
       ), // category 1
     );
 
@@ -31,6 +37,8 @@ class EventModel {
         dateTime: DateTime(2024, 8, 1, 10, 0),
         location: 'Los Angeles',
         boxIsSelected: false,
+        isFavourite: true,
+        hasTicket: true
       ), // category 2
     );
 
@@ -40,6 +48,8 @@ class EventModel {
         dateTime: DateTime(2024, 9, 10, 9, 0),
         location: 'San Francisco',
         boxIsSelected: false,
+        isFavourite: true,
+        hasTicket: true
       ), // category 3
     );
 
@@ -49,6 +59,8 @@ class EventModel {
         dateTime: DateTime(2024, 10, 5, 12, 0),
         location: 'Chicago',
         boxIsSelected: false,
+        isFavourite: false,
+        hasTicket: false
       ), // category 4
     );
 
@@ -58,6 +70,8 @@ class EventModel {
         dateTime: DateTime(2024, 11, 20, 7, 0),
         location: 'Boston',
         boxIsSelected: false,
+        isFavourite: false,
+        hasTicket: false
       ), // category 5
     );
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:eventflow/models/event_model.dart';
+import 'package:eventflow/providers/event_provider.dart';
 import 'package:eventflow/screens/event_details.dart';
 
 class EventTiles extends StatelessWidget {
@@ -14,8 +16,8 @@ class EventTiles extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(20.0),
+        const Padding(
+          padding: EdgeInsets.all(20.0),
           child: Text(
             'Events',
             style: TextStyle(
@@ -28,8 +30,8 @@ class EventTiles extends StatelessWidget {
         ListView.separated(
           itemCount: eventModel.length,
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          separatorBuilder: (context, index) => SizedBox(height: 10),
+          physics: const NeverScrollableScrollPhysics(),
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             return Material(
               color: Colors.transparent,
@@ -57,9 +59,9 @@ class EventTiles extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -72,66 +74,105 @@ class EventTiles extends StatelessWidget {
                           width: 125,
                           height: 125,
                           decoration: BoxDecoration(
-                            color: Color(0xFF13D0A1),
+                            color: const Color(0xFF13D0A1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       // ---EVENT DETAILS---
                       // ---EVENT DATE AND TIME---
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ---EVENT DATE AND TIME---
-                            Text(
-                              eventModel[index].dateTime != null
-                                  ? DateFormat(
-                                      'EEE, MMM d  ·  h:mm a',
-                                    ).format(eventModel[index].dateTime!)
-                                  : '',
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 12,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
-                            // ---EVENT NAME---
-                            Text(
-                              eventModel[index].name,
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // ---EVENT LOCATION---
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  size: 14,
-                                  color: Colors.grey,
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // ---EVENT DATE AND TIME---
+                              Text(
+                                eventModel[index].dateTime != null
+                                    ? DateFormat(
+                                        'EEE, MMM d  ·  h:mm a',
+                                      ).format(eventModel[index].dateTime!)
+                                    : '',
+                                textAlign: TextAlign.left,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.normal,
                                 ),
-                                SizedBox(width: 5),
-                                Text(
-                                  eventModel[index].location,
-                                  textAlign: TextAlign.left,
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.normal,
+                              ),
+                              // ---EVENT NAME---
+                              Text(
+                                eventModel[index].name,
+                                textAlign: TextAlign.left,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // ---EVENT LOCATION---
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 14,
+                                    color: Colors.grey,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      eventModel[index].location,
+                                      textAlign: TextAlign.left,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Favourite and Ticket buttons
+                              Consumer<EventProvider>(
+                                builder: (context, eventProvider, child) {
+                                  return Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          eventModel[index].isFavourite
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: eventModel[index].isFavourite
+                                              ? Colors.red
+                                              : Colors.grey,
+                                        ),
+                                        onPressed: () {
+                                          eventProvider.toggleFavourite(eventModel[index]);
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          eventModel[index].hasTicket
+                                              ? Icons.confirmation_number
+                                              : Icons.confirmation_number_outlined,
+                                          color: eventModel[index].hasTicket
+                                              ? Colors.green
+                                              : Colors.grey,
+                                        ),
+                                        onPressed: () {
+                                          eventProvider.toggleTicket(eventModel[index]);
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

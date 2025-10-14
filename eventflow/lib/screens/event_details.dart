@@ -14,6 +14,8 @@ class EventDetails extends StatefulWidget {
 }
 
 class _EventDetailsState extends State<EventDetails> {
+  bool _isFavorited = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,12 +138,39 @@ class _EventDetailsState extends State<EventDetails> {
               ),
             ),
           ),
-          // Button at the bottom, outside the scrollable area but within the main Column
-          Padding( // Optional: Add padding around the button
+          // Buttons at the bottom, outside the scrollable area but within the main Column
+          Padding( // Optional: Add padding around the buttons
             padding: const EdgeInsets.all(20.0),
-            child: CustomButton(
-              text: 'Attend',
-              onPressed: () {},
+            child: Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Get Tickets',
+                    onPressed: () {},
+                  ),
+                ),
+                SizedBox(width: 10),
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Color(0xFF13D0A1), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _isFavorited ? Icons.favorite : Icons.favorite_border,
+                      color: _isFavorited ? Colors.red : Color(0xFF13D0A1),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isFavorited = !_isFavorited;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 20),
