@@ -41,13 +41,16 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: Appbar(title: 'Home'),
       backgroundColor: Colors.white,
-      body: ListView(
-        children: [
-          // PopularEventCards(popularEvents: popularEvents),
-          // SizedBox(height: 20),
-          EventTiles(eventModel: eventModel),
-          SizedBox(height: 20),
-        ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: ListView(
+          children: [
+            // PopularEventCards(popularEvents: popularEvents),
+            // SizedBox(height: 20),
+            EventTiles(eventModel: eventModel),
+            SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

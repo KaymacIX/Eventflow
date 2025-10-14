@@ -1,3 +1,4 @@
+import 'package:eventflow/widgets/search_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:eventflow/widgets/app_bar.dart';
 
@@ -14,24 +15,9 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: Appbar(title: 'Search'),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search events...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16.0),
-                  borderSide: BorderSide(color: Colors.grey, width: 1.0),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-          ),
-        ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(children: [SizedBox(height: 20), SearchTextField()]),
       ),
     );
   }

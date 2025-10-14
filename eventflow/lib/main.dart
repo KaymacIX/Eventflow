@@ -1,4 +1,8 @@
 // import 'package:eventflow/screens/event_details.dart';
+import 'package:eventflow/screens/auth/login_screen.dart';
+import 'package:eventflow/screens/auth/register_screen.dart';
+import 'package:eventflow/screens/profile_page.dart';
+import 'package:eventflow/screens/home.dart';
 import 'package:flutter/material.dart';
 
 // ignore: unused_import
@@ -16,8 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainScreen(), // Start directly on the Home page
-      // home: EventDetails(), // Start directly on the Home page
+      home: MainScreen(),
     );
   }
 }
