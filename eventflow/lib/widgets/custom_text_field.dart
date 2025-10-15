@@ -13,6 +13,7 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.autofillHints,
     this.isPassword = false,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -25,6 +26,7 @@ class CustomTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final Iterable<String>? autofillHints;
   final bool isPassword;
+  final int maxLines;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -53,18 +55,30 @@ class _CustomTextFieldState extends State<CustomTextField> {
           onChanged: widget.onChanged,
           autofillHints: widget.autofillHints,
           obscureText: widget.isPassword ? _obscure : false,
+          maxLines: widget.maxLines,
           decoration: InputDecoration(
             hintText: widget.hint,
             filled: true,
             fillColor: widget.enabled ? Colors.white : Colors.grey[100],
-            border: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(32.0),
+              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
             ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(32.0),
+              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black54),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(32.0),
+              borderSide: const BorderSide(color: Color(0xFF13D0A1), width: 2.0),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(32.0),
+              borderSide: const BorderSide(color: Colors.red, width: 1.0),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(32.0),
+              borderSide: const BorderSide(color: Colors.red, width: 2.0),
             ),
             suffixIcon: widget.isPassword
                 ? IconButton(
@@ -75,8 +89,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   )
                 : null,
             contentPadding: const EdgeInsets.symmetric(
-              vertical: 14,
-              horizontal: 0,
+              vertical: 16,
+              horizontal: 20,
             ),
           ),
         ),

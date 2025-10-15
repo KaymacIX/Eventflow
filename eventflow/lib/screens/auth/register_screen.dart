@@ -1,7 +1,12 @@
-import 'package:eventflow/widgets/custom_button.dart';
-import 'package:flutter/material.dart';
+import 'package:eventflow/mainscreen.dart';
 
 import '../../widgets/custom_text_field.dart';
+import '../../utils/api_service.dart';
+import 'package:flutter/material.dart';
+import 'package:eventflow/widgets/custom_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -29,14 +34,33 @@ class _SignUpScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
 
-    // TODO: replace with real sign-up call
-    await Future.delayed(const Duration(seconds: 2));
+    final api = ApiService();
+    final response = await api.post(
+      '/register', // Replace with your actual register endpoint
+      data: {
+        'email': _emailCtrl.text.trim(),
+        'username': _nameCtrl.text.trim(), // Assuming username is same as name
+        'name': _nameCtrl.text.trim(),
+        'password': _passwordCtrl.text,
+      },
+    );
 
     setState(() => _isSubmitting = false);
+    if (response.success) {
+      final token = response.responseData?['token'];
+      final user = response.responseData?['user'];
+      if (token != null) await api.saveToken(token);
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_data', user.toString());
+      }
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MainScreen()));
+    }
     if (mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Account created')));
+      ).showSnackBar(SnackBar(content: Text(response.responseMessage)));
+      // TODO: Navigate to login or home page if needed
     }
   }
 
@@ -138,6 +162,39 @@ class _SignUpScreenState extends State<RegisterScreen> {
                 isLoading: _isSubmitting,
                 enabled: _isFormFilled && !_isSubmitting,
                 onPressed: _submit,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Sign in link
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Already have an account? ",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Sign in',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF13D0A1),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

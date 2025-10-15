@@ -1,8 +1,11 @@
-import 'package:eventflow/widgets/custom_button.dart';
-import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/switch_tile.dart';
+import '../../providers/auth_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:eventflow/widgets/custom_button.dart';
+import 'register_screen.dart';
+import '../../mainscreen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,14 +29,31 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
 
-    // TODO: replace with real auth call
-    await Future.delayed(const Duration(seconds: 2));
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.login(
+      _emailCtrl.text.trim(),
+      _passwordCtrl.text,
+      remember: _remember,
+    );
 
     setState(() => _isSubmitting = false);
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Signed in successfully')));
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login successful!')),
+      );
+      // Force navigation to home screen
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => MainScreen()),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login failed. Please check your credentials.')),
+      );
     }
   }
 
@@ -116,6 +136,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 isLoading: _isSubmitting,
                 enabled: _isFormFilled && !_isSubmitting,
                 onPressed: _submit,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Sign up link
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Don't have an account? ",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Sign up',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF13D0A1),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

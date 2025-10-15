@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:eventflow/models/event_model.dart';
+import 'package:eventflow/providers/auth_provider.dart';
+import 'package:eventflow/providers/event_provider.dart';
 import 'package:eventflow/widgets/custom_button.dart';
 
 class EventDetails extends StatefulWidget {
@@ -15,20 +18,118 @@ class EventDetails extends StatefulWidget {
 
 class _EventDetailsState extends State<EventDetails> {
   bool _isFavorited = false;
+  int _attendeeCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateAttendeeCount();
+  }
+
+  void _calculateAttendeeCount() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
+
+    final currentUserEmail = authProvider.user?['email'];
+    if (widget.eventModel.createdBy == currentUserEmail) {
+      // Count how many events have this event's name and hasTicket = true
+      _attendeeCount = eventProvider.events
+          .where((event) => event.name == widget.eventModel.name && event.hasTicket)
+          .length;
+    }
+  }
+
+  String _getTimeRange() {
+    if (widget.eventModel.dateTime != null) {
+      String startTime = DateFormat('h:mm a').format(widget.eventModel.dateTime!);
+
+      if (widget.eventModel.endTime != null) {
+        String endTime = DateFormat('h:mm a').format(widget.eventModel.endTime!);
+        return '$startTime - $endTime';
+      } else {
+        return startTime;
+      }
+    }
+    return '10:00 AM - 12:00 PM'; // Default fallback
+  }
+
+  Widget _buildEventImage(String? imageUrl) {
+    if (imageUrl == null) {
+      return Container(color: const Color(0xFF13D0A1));
+    }
+
+    // Check if it's a network URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: Colors.grey[300],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading image: $error');
+          return Container(
+            color: const Color(0xFF13D0A1),
+            child: const Icon(Icons.error, color: Colors.white, size: 50),
+          );
+        },
+      );
+    }
+
+    // Check if it's a local asset
+    if (imageUrl.startsWith('lib/assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFF13D0A1),
+            child: const Icon(
+              Icons.image_not_supported,
+              color: Colors.white,
+              size: 50,
+            ),
+          );
+        },
+      );
+    }
+
+    // Default fallback
+    return Container(color: const Color(0xFF13D0A1));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currentUserEmail = authProvider.user?['email'];
+    final isEventOwner = widget.eventModel.createdBy == currentUserEmail;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column( // Outer Column: will contain the scrollable content and the button
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IMAGE PLACEHOLDER with Hero - This remains outside the scrollable area
+          // IMAGE with Hero
           Stack(
             children: [
               Hero(
                 tag: 'event-image-${widget.eventModel.name}',
-                child: Container(height: 300, color: Color(0xFF13D0A1)),
+                child: Container(
+                  height: 300,
+                  width: double.infinity,
+                  child: _buildEventImage(widget.eventModel.eventImageUrl),
+                ),
               ),
               Positioned(
                 left: 20,
@@ -39,7 +140,7 @@ class _EventDetailsState extends State<EventDetails> {
                     color: Colors.white.withOpacity(0.9),
                   ),
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.black),
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -47,121 +148,196 @@ class _EventDetailsState extends State<EventDetails> {
             ],
           ),
           // Scrollable content area
-          Expanded( // Make the content area expand to fill available vertical space
-            child: SingleChildScrollView( // Allow content to scroll if it overflows
+          Expanded(
+            child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column( // Inner column for the details
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     // EVENT TITLE
-                    Text(
-                      widget.eventModel.name,
-                      style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.eventModel.name,
+                            style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (widget.eventModel.dateTime != null &&
+                            widget.eventModel.dateTime!.isBefore(DateTime.now()))
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Text(
+                              'PAST',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    SizedBox(height: 30),
+                    const SizedBox(height: 30),
                     Row(
                       children: [
                         // DATE
-                        Icon(Icons.calendar_month),
-                        SizedBox(width: 10),
+                        const Icon(Icons.calendar_month),
+                        const SizedBox(width: 10),
                         Text(
                           widget.eventModel.dateTime != null
                               ? DateFormat(
-                            'EEE, MMMM d, yyyy',
-                          ).format(widget.eventModel.dateTime!)
+                                  'EEE, MMMM d, yyyy',
+                                ).format(widget.eventModel.dateTime!)
                               : '',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     // TIME
-                    Text('10:00 AM - 12:00 PM', style: TextStyle(fontSize: 14)),
-                    SizedBox(height: 10),
-                    Text(
-                      'Add to Calendar',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 30),
                     Row(
                       children: [
-                        Icon(Icons.location_on),
-                        SizedBox(width: 10),
-                        // LOCATION
+                        const Icon(Icons.access_time, size: 16),
+                        const SizedBox(width: 5),
                         Text(
-                          widget.eventModel.location,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          _getTimeRange(),
+                          style: const TextStyle(fontSize: 14),
                         ),
-                        // ADDRESS
                       ],
                     ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Main Campus, TLC 1, Lusaka',
-                      style: TextStyle(fontSize: 14),
+                    const SizedBox(height: 10),
+                    // const Text(
+                    //   'Add to Calendar',
+                    //   style: TextStyle(
+                    //     fontSize: 14,
+                    //     color: Colors.blue,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on),
+                        const SizedBox(width: 10),
+                        // LOCATION
+                        Expanded(
+                          child: Text(
+                            widget.eventModel.location,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Text(
-                      'Get Directions',
+                      widget.eventModel.location,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    // const Text(
+                    //   'Get Directions',
+                    //   style: TextStyle(
+                    //     fontSize: 14,
+                    //     color: Colors.blue,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 30),
+                    // DESCRIPTION
+                    const Text(
+                      'Description',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 30),
-                    // DESCRIPTION
+                    const SizedBox(height: 10),
                     Text(
-                      'Description',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      widget.eventModel.description,
+                      style: const TextStyle(fontSize: 14),
                     ),
-                    SizedBox(height: 10),
-                    Text(
-                      'This is a detailed description of the event. It provides information about what to expect, who will be there, and any other relevant details that attendees might need to know.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    SizedBox(height: 20), // Add some space before the button if button is not sticky
+                    const SizedBox(height: 20),
+                    // ATTENDEE COUNT (only for event owner)
+                    if (isEventOwner)
+                      Row(
+                        children: [
+                          const Icon(Icons.people),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Attendees: $_attendeeCount',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (isEventOwner)
+                      const SizedBox(height: 20),
+                    // HOST
+                    if (widget.eventModel.createdBy != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.person),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Hosted by: ${widget.eventModel.createdByName ?? widget.eventModel.createdBy ?? 'Unknown'}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (widget.eventModel.createdBy != null)
+                      const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
           ),
-          // Buttons at the bottom, outside the scrollable area but within the main Column
-          Padding( // Optional: Add padding around the buttons
+          // Buttons at the bottom
+          Padding(
             padding: const EdgeInsets.all(20.0),
             child: Row(
               children: [
                 Expanded(
-                  child: CustomButton(
-                    text: 'Get Tickets',
-                    onPressed: () {},
-                  ),
+                  child: CustomButton(text: 'Get Tickets', onPressed: () {}),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Container(
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(color: Color(0xFF13D0A1), width: 2),
+                    border: Border.all(
+                      color: const Color(0xFF13D0A1),
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
                     icon: Icon(
                       _isFavorited ? Icons.favorite : Icons.favorite_border,
-                      color: _isFavorited ? Colors.red : Color(0xFF13D0A1),
+                      color: _isFavorited
+                          ? Colors.red
+                          : const Color(0xFF13D0A1),
                     ),
                     onPressed: () {
                       setState(() {
@@ -173,9 +349,10 @@ class _EventDetailsState extends State<EventDetails> {
               ],
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 }
+

@@ -11,8 +11,81 @@ class EventTiles extends StatelessWidget {
 
   final List<EventModel> eventModel;
 
+  Widget _buildEventImage(String? imageUrl) {
+    if (imageUrl == null) {
+      return Container(color: const Color(0xFF13D0A1));
+    }
+
+    // Check if it's a network URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return FadeInImage.assetNetwork(
+        placeholder: '', // Empty placeholder to avoid showing anything initially
+        image: imageUrl,
+        fit: BoxFit.cover,
+        placeholderErrorBuilder: (context, error, stackTrace) {
+          return Container(color: const Color(0xFF13D0A1));
+        },
+        imageErrorBuilder: (context, error, stackTrace) {
+          print('Error loading image: $error');
+          return Container(
+            color: const Color(0xFF13D0A1),
+            child: const Icon(Icons.error, color: Colors.white),
+          );
+        },
+      );
+    }
+
+    // Check if it's a local asset
+    if (imageUrl.startsWith('lib/assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFF13D0A1),
+            child: const Icon(Icons.image_not_supported, color: Colors.white),
+          );
+        },
+      );
+    }
+
+    // Default fallback
+    return Container(color: const Color(0xFF13D0A1));
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (eventModel.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text(
+              'Events',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 40.0),
+              child: Text(
+                'No events present',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -74,14 +147,16 @@ class EventTiles extends StatelessWidget {
                           width: 125,
                           height: 125,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF13D0A1),
                             borderRadius: BorderRadius.circular(16),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: _buildEventImage(
+                            eventModel[index].eventImageUrl,
                           ),
                         ),
                       ),
                       const SizedBox(width: 4),
                       // ---EVENT DETAILS---
-                      // ---EVENT DATE AND TIME---
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -89,19 +164,42 @@ class EventTiles extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              const SizedBox(height: 8),
                               // ---EVENT DATE AND TIME---
-                              Text(
-                                eventModel[index].dateTime != null
-                                    ? DateFormat(
-                                        'EEE, MMM d  ·  h:mm a',
-                                      ).format(eventModel[index].dateTime!)
-                                    : '',
-                                textAlign: TextAlign.left,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.normal,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    eventModel[index].dateTime != null
+                                        ? DateFormat(
+                                            'EEE, MMM d  ·  h:mm a',
+                                          ).format(eventModel[index].dateTime!)
+                                        : '',
+                                    textAlign: TextAlign.left,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                  if (eventModel[index].dateTime != null &&
+                                      eventModel[index].dateTime!.isBefore(DateTime.now()))
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'PAST',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                               // ---EVENT NAME---
                               Text(
@@ -151,20 +249,25 @@ class EventTiles extends StatelessWidget {
                                               : Colors.grey,
                                         ),
                                         onPressed: () {
-                                          eventProvider.toggleFavourite(eventModel[index]);
+                                          eventProvider.toggleFavourite(
+                                            eventModel[index],
+                                          );
                                         },
                                       ),
                                       IconButton(
                                         icon: Icon(
                                           eventModel[index].hasTicket
                                               ? Icons.confirmation_number
-                                              : Icons.confirmation_number_outlined,
+                                              : Icons
+                                                  .confirmation_number_outlined,
                                           color: eventModel[index].hasTicket
                                               ? Colors.green
                                               : Colors.grey,
                                         ),
                                         onPressed: () {
-                                          eventProvider.toggleTicket(eventModel[index]);
+                                          eventProvider.toggleTicket(
+                                            eventModel[index],
+                                          );
                                         },
                                       ),
                                     ],
