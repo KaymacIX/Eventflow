@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import '../utils/api_service.dart';
 import '../utils/debug_helper.dart';
 import 'event_provider.dart';
+import 'favorites_provider.dart';
+import 'tickets_provider.dart';
+import 'my_events_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -53,11 +56,18 @@ class AuthProvider with ChangeNotifier {
           _isAuthenticated = true;
           print('DEBUG: User authenticated with stored data');
 
-          // Update user events after authentication
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Update user events and load user-specific data after authentication
+          Future.delayed(const Duration(milliseconds: 100), () {
             if (_context != null) {
               final eventProvider = Provider.of<EventProvider>(_context!, listen: false);
+              final favoritesProvider = Provider.of<FavoritesProvider>(_context!, listen: false);
+              final ticketsProvider = Provider.of<TicketsProvider>(_context!, listen: false);
+              final myEventsProvider = Provider.of<MyEventsProvider>(_context!, listen: false);
+
               eventProvider.updateUserEvents(_user?['email']);
+              favoritesProvider.loadFavorites();
+              ticketsProvider.loadTickets();
+              myEventsProvider.loadMyEvents();
             }
           });
 
@@ -164,15 +174,30 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     try {
       final apiService = ApiService();
-      
+
       // Call logout endpoint if authenticated
       if (_isAuthenticated && _token != null) {
         await apiService.post('/logout');
       }
-      
+
       // Clear local data
       await _clearAuthData();
-      
+
+      // Clear other providers' data
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_context != null) {
+          final eventProvider = Provider.of<EventProvider>(_context!, listen: false);
+          final favoritesProvider = Provider.of<FavoritesProvider>(_context!, listen: false);
+          final ticketsProvider = Provider.of<TicketsProvider>(_context!, listen: false);
+          final myEventsProvider = Provider.of<MyEventsProvider>(_context!, listen: false);
+
+          eventProvider.clearEvents();
+          favoritesProvider.clearFavorites();
+          ticketsProvider.clearTickets();
+          myEventsProvider.clearEvents();
+        }
+      });
+
     } catch (e) {
       print('Logout error: $e');
       // Still clear local data even if API call fails

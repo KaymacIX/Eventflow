@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eventflow/providers/event_provider.dart';
 import 'package:eventflow/providers/auth_provider.dart';
+import 'package:eventflow/providers/my_events_provider.dart';
+import 'package:eventflow/providers/tickets_provider.dart';
+import 'package:eventflow/providers/favorites_provider.dart';
 import 'package:eventflow/screens/create_event.dart';
 import 'mainscreen.dart';
 
@@ -15,6 +18,9 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => MyEventsProvider()),
+        ChangeNotifierProvider(create: (_) => TicketsProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
       ],
       child: const MyApp(),
     ),
@@ -56,6 +62,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       authProvider.setContext(context);
+
+      // Load favorites and tickets when user is authenticated
+      if (authProvider.isAuthenticated) {
+        final favoritesProvider = Provider.of<FavoritesProvider>(context, listen: false);
+        final ticketsProvider = Provider.of<TicketsProvider>(context, listen: false);
+        favoritesProvider.loadFavorites();
+        ticketsProvider.loadTickets();
+      }
     });
   }
 

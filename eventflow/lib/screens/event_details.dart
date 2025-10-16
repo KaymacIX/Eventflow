@@ -118,197 +118,201 @@ class _EventDetailsState extends State<EventDetails> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IMAGE with Hero
-          Stack(
-            children: [
-              Hero(
-                tag: 'event-image-${widget.eventModel.name}',
-                child: Container(
-                  height: 300,
-                  width: double.infinity,
-                  child: _buildEventImage(widget.eventModel.eventImageUrl),
-                ),
-              ),
-              Positioned(
-                left: 20,
-                bottom: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Scrollable content area
           Expanded(
             child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    // EVENT TITLE
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.eventModel.name,
-                            style: const TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold,
-                            ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // IMAGE with Hero
+                  Stack(
+                    children: [
+                      Hero(
+                        tag: 'event-image-${widget.eventModel.name}',
+                        child: Container(
+                          height: 300,
+                          width: double.infinity,
+                          child: _buildEventImage(widget.eventModel.eventImageUrl),
+                        ),
+                      ),
+                      Positioned(
+                        left: 20,
+                        bottom: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.black),
+                            onPressed: () => Navigator.pop(context),
                           ),
                         ),
-                        if (widget.eventModel.dateTime != null &&
-                            widget.eventModel.dateTime!.isBefore(DateTime.now()))
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
+                      ),
+                    ],
+                  ),
+                  // Content area
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        // EVENT TITLE
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.eventModel.name,
+                                style: const TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            child: const Text(
-                              'PAST',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 14,
+                            if (widget.eventModel.dateTime != null &&
+                                widget.eventModel.dateTime!.isBefore(DateTime.now()))
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Text(
+                                  'PAST',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                        Row(
+                          children: [
+                            // DATE
+                            const Icon(Icons.calendar_month),
+                            const SizedBox(width: 10),
+                            Text(
+                              widget.eventModel.dateTime != null
+                                  ? DateFormat(
+                                      'EEE, MMMM d, yyyy',
+                                    ).format(widget.eventModel.dateTime!)
+                                  : '',
+                              style: const TextStyle(
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    Row(
-                      children: [
-                        // DATE
-                        const Icon(Icons.calendar_month),
-                        const SizedBox(width: 10),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // TIME
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time, size: 16),
+                            const SizedBox(width: 5),
+                            Text(
+                              _getTimeRange(),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // const Text(
+                        //   'Add to Calendar',
+                        //   style: TextStyle(
+                        //     fontSize: 14,
+                        //     color: Colors.blue,
+                        //     fontWeight: FontWeight.bold,
+                        //   ),
+                        // ),
+                        const SizedBox(height: 30),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on),
+                            const SizedBox(width: 10),
+                            // LOCATION
+                            Expanded(
+                              child: Text(
+                                widget.eventModel.location,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
                         Text(
-                          widget.eventModel.dateTime != null
-                              ? DateFormat(
-                                  'EEE, MMMM d, yyyy',
-                                ).format(widget.eventModel.dateTime!)
-                              : '',
-                          style: const TextStyle(
-                            fontSize: 16,
+                          widget.eventModel.location,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 10),
+                        // const Text(
+                        //   'Get Directions',
+                        //   style: TextStyle(
+                        //     fontSize: 14,
+                        //     color: Colors.blue,
+                        //     fontWeight: FontWeight.bold,
+                        //   ),
+                        // ),
+                        const SizedBox(height: 30),
+                        // DESCRIPTION
+                        const Text(
+                          'Description',
+                          style: TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // TIME
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time, size: 16),
-                        const SizedBox(width: 5),
+                        const SizedBox(height: 10),
                         Text(
-                          _getTimeRange(),
+                          widget.eventModel.description.isNotEmpty ? widget.eventModel.description : 'No description available.',
                           style: const TextStyle(fontSize: 14),
                         ),
+                        const SizedBox(height: 20),
+                        // ATTENDEE COUNT (only for event owner)
+                        if (isEventOwner)
+                          Row(
+                            children: [
+                              const Icon(Icons.people),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Attendees: $_attendeeCount',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (isEventOwner)
+                          const SizedBox(height: 20),
+                        // HOST
+                        if (widget.eventModel.createdBy != null || widget.eventModel.createdByName != null)
+                          Row(
+                            children: [
+                              const Icon(Icons.person),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Hosted by: ${widget.eventModel.createdByName ?? widget.eventModel.createdBy ?? 'Unknown'}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (widget.eventModel.createdBy != null || widget.eventModel.createdByName != null)
+                          const SizedBox(height: 20),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    // const Text(
-                    //   'Add to Calendar',
-                    //   style: TextStyle(
-                    //     fontSize: 14,
-                    //     color: Colors.blue,
-                    //     fontWeight: FontWeight.bold,
-                    //   ),
-                    // ),
-                    const SizedBox(height: 30),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on),
-                        const SizedBox(width: 10),
-                        // LOCATION
-                        Expanded(
-                          child: Text(
-                            widget.eventModel.location,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.eventModel.location,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 10),
-                    // const Text(
-                    //   'Get Directions',
-                    //   style: TextStyle(
-                    //     fontSize: 14,
-                    //     color: Colors.blue,
-                    //     fontWeight: FontWeight.bold,
-                    //   ),
-                    // ),
-                    const SizedBox(height: 30),
-                    // DESCRIPTION
-                    const Text(
-                      'Description',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.eventModel.description,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    // ATTENDEE COUNT (only for event owner)
-                    if (isEventOwner)
-                      Row(
-                        children: [
-                          const Icon(Icons.people),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Attendees: $_attendeeCount',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (isEventOwner)
-                      const SizedBox(height: 20),
-                    // HOST
-                    if (widget.eventModel.createdBy != null)
-                      Row(
-                        children: [
-                          const Icon(Icons.person),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Hosted by: ${widget.eventModel.createdByName ?? widget.eventModel.createdBy ?? 'Unknown'}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (widget.eventModel.createdBy != null)
-                      const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -318,7 +322,13 @@ class _EventDetailsState extends State<EventDetails> {
             child: Row(
               children: [
                 Expanded(
-                  child: CustomButton(text: 'Get Tickets', onPressed: () {}),
+                  child: CustomButton(
+                    text: 'Get Tickets',
+                    onPressed: () async {
+                      final eventProvider = Provider.of<EventProvider>(context, listen: false);
+                      await eventProvider.toggleTicket(widget.eventModel);
+                    },
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Container(
@@ -334,22 +344,20 @@ class _EventDetailsState extends State<EventDetails> {
                   ),
                   child: IconButton(
                     icon: Icon(
-                      _isFavorited ? Icons.favorite : Icons.favorite_border,
-                      color: _isFavorited
+                      widget.eventModel.isFavourite ? Icons.favorite : Icons.favorite_border,
+                      color: widget.eventModel.isFavourite
                           ? Colors.red
                           : const Color(0xFF13D0A1),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isFavorited = !_isFavorited;
-                      });
+                    onPressed: () async {
+                      final eventProvider = Provider.of<EventProvider>(context, listen: false);
+                      await eventProvider.toggleFavourite(widget.eventModel);
                     },
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );

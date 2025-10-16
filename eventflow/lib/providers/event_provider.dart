@@ -48,23 +48,66 @@ class EventProvider with ChangeNotifier {
     updateUserEvents(currentUserEmail);
   }
 
-  void toggleFavourite(EventModel event) {
-    final index = _events.indexWhere((e) => e.name == event.name);
-    if (index != -1) {
-      _events[index].isFavourite = !_events[index].isFavourite;
-      _updateFavouriteEvents();
-      _updateUserEvents();
-      notifyListeners();
+  Future<void> toggleFavourite(EventModel event) async {
+    try {
+      final api = ApiService();
+      final eventId = event.id;
+      if (eventId == null) return;
+
+      if (event.isFavourite) {
+        // Remove favorite
+        await api.delete('/favorites/$eventId');
+      } else {
+        // Add favorite
+        await api.post('/favorites/$eventId');
+      }
+
+      final index = _events.indexWhere((e) => e.id == eventId);
+      if (index != -1) {
+        _events[index].isFavourite = !_events[index].isFavourite;
+        _updateFavouriteEvents();
+        _updateUserEvents();
+        notifyListeners();
+      }
+
+      // Refresh favorites in FavoritesProvider
+      // This will be handled by the widget that calls this method
+    } catch (e) {
+      // Handle error - could show a snackbar or something
+      print('Error toggling favorite: $e');
     }
   }
 
-  void toggleTicket(EventModel event) {
-    final index = _events.indexWhere((e) => e.name == event.name);
-    if (index != -1) {
-      _events[index].hasTicket = !_events[index].hasTicket;
-      _updateTicketedEvents();
-      _updateUserEvents();
-      notifyListeners();
+  Future<void> toggleTicket(EventModel event) async {
+    try {
+      final api = ApiService();
+      final eventId = event.id;
+      if (eventId == null) return;
+
+      if (event.hasTicket) {
+        // Remove ticket - assuming there's a delete endpoint, or we might need to handle this differently
+        // For now, just toggle locally since the API might not have a remove ticket endpoint
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          _events[index].hasTicket = false;
+          _updateTicketedEvents();
+          _updateUserEvents();
+          notifyListeners();
+        }
+      } else {
+        // Get ticket
+        await api.post('/tickets/$eventId');
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          _events[index].hasTicket = true;
+          _updateTicketedEvents();
+          _updateUserEvents();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      // Handle error
+      print('Error toggling ticket: $e');
     }
   }
 
@@ -95,6 +138,14 @@ class EventProvider with ChangeNotifier {
 
   void updateSearchQuery(String query) {
     _searchQuery = query;
+    notifyListeners();
+  }
+
+  void clearEvents() {
+    _events = [];
+    _favouriteEvents = [];
+    _ticketedEvents = [];
+    _userEvents = [];
     notifyListeners();
   }
 

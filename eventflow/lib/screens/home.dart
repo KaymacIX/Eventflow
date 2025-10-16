@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:eventflow/models/popular_event_model.dart';
 import 'package:eventflow/providers/event_provider.dart';
 import 'package:eventflow/providers/auth_provider.dart';
+import 'package:eventflow/providers/my_events_provider.dart';
 
 import 'package:eventflow/widgets/app_bar.dart';
 // import 'package:eventflow/widgets/popular_event_cards.dart';
@@ -30,6 +31,15 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     super.initState();
     _getPopularEvents();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Load both upcoming events and my events when the widget is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final myEventsProvider = Provider.of<MyEventsProvider>(context, listen: false);
+      final eventProvider = Provider.of<EventProvider>(context, listen: false);
+      
+      myEventsProvider.loadMyEvents();
+      eventProvider.loadEvents();
+    });
   }
 
   @override
@@ -137,102 +147,118 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildUpcomingEventsTab() {
-    return Consumer<EventProvider>(
-      builder: (context, eventProvider, child) {
-        final upcomingEvents = eventProvider.getUpcomingEvents();
+    return Consumer2<EventProvider, MyEventsProvider>(
+      builder: (context, eventProvider, myEventsProvider, child) {
+        // Get all upcoming events
+        final allUpcomingEvents = eventProvider.getUpcomingEvents();
+        
+        // Get IDs of user's own events to filter them out
+        final myEventIds = myEventsProvider.myEvents
+            .map((e) => e.id)
+            .where((id) => id != null)
+            .toSet();
+        
+        // Filter out user's own events from upcoming events
+        final upcomingEvents = allUpcomingEvents
+            .where((event) => !myEventIds.contains(event.id))
+            .toList();
+        
         return RefreshIndicator(
           onRefresh: () async {
-            // Trigger a reload of events from the API
+            // Reload both providers to ensure data is in sync
             await eventProvider.loadEvents();
+            await myEventsProvider.loadMyEvents();
             setState(() {});
           },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: upcomingEvents.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.event_busy,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No upcoming events',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView(
+          child: upcomingEvents.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      EventTiles(eventModel: upcomingEvents),
-                      const SizedBox(height: 20),
+                      Icon(
+                        Icons.event_busy,
+                        size: 64,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No upcoming events',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
-          ),
+                )
+              : ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    EventTiles(
+                      eventModel: upcomingEvents,
+                      showHeader: false,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
         );
       },
     );
   }
 
   Widget _buildMyEventsTab() {
-    return Consumer2<EventProvider, AuthProvider>(
-      builder: (context, eventProvider, authProvider, child) {
-        final currentUserEmail = authProvider.user?['email'];
-        final userEvents = eventProvider.getUserEvents(currentUserEmail);
+    return Consumer<MyEventsProvider>(
+      builder: (context, myEventsProvider, child) {
+        final myEvents = myEventsProvider.myEvents;
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Trigger a reload of events from the API
-            await eventProvider.loadEvents();
+            // Trigger a reload of my events from the API
+            await myEventsProvider.loadMyEvents();
             setState(() {});
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: userEvents.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.event_note,
-                          size: 64,
-                          color: Colors.grey,
+            child: myEventsProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : myEvents.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.event_note,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No events created yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Tap the + button to create your first event',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No events created yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Tap the + button to create your first event',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView(
-                    children: [
-                      EventTiles(eventModel: userEvents),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                      )
+                    : ListView(
+                        children: [
+                          EventTiles(eventModel: myEvents, isMyEvents: true),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
           ),
         );
       },

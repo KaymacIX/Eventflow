@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:eventflow/models/event_model.dart';
 import 'package:eventflow/providers/event_provider.dart';
 import 'package:eventflow/providers/auth_provider.dart';
+import 'package:eventflow/providers/my_events_provider.dart';
 import 'package:eventflow/widgets/app_bar.dart';
 import 'package:eventflow/widgets/custom_button.dart';
 import 'package:eventflow/widgets/custom_text_field.dart';
@@ -15,24 +16,40 @@ import 'package:latlong2/latlong.dart';
 import '../utils/api_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
-  const CreateEventScreen({super.key});
+   const CreateEventScreen({super.key, this.eventToEdit});
 
-  @override
-  State<CreateEventScreen> createState() => _CreateEventScreenState();
+   final EventModel? eventToEdit;
+
+   @override
+   State<CreateEventScreen> createState() => _CreateEventScreenState();
 }
 
 class _CreateEventScreenState extends State<CreateEventScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
-  String? _selectedImagePath;
-  DateTime? _selectedDateTime;
-  DateTime? _selectedEndDateTime;
-  double? _selectedLongitude;
-  double? _selectedLatitude;
-  final LatLng _defaultCenter = LatLng(-15.3875, 28.3228); // Lusaka default
+   final _formKey = GlobalKey<FormState>();
+   final _nameController = TextEditingController();
+   final _locationController = TextEditingController();
+   final _descriptionController = TextEditingController();
+   final ImagePicker _picker = ImagePicker();
+   String? _selectedImagePath;
+   DateTime? _selectedDateTime;
+   DateTime? _selectedEndDateTime;
+   double? _selectedLongitude;
+   double? _selectedLatitude;
+   final LatLng _defaultCenter = LatLng(-15.3875, 28.3228); // Lusaka default
+
+   @override
+   void initState() {
+     super.initState();
+     if (widget.eventToEdit != null) {
+       _nameController.text = widget.eventToEdit!.name;
+       _locationController.text = widget.eventToEdit!.location;
+       _descriptionController.text = widget.eventToEdit!.description ?? '';
+       _selectedDateTime = widget.eventToEdit!.dateTime;
+       _selectedEndDateTime = widget.eventToEdit!.endTime;
+       _selectedImagePath = widget.eventToEdit!.eventImageUrl;
+       // Note: longitude and latitude would need to be added to EventModel if needed
+     }
+   }
   void _pickEndDateTime() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -86,78 +103,110 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final eventProvider = Provider.of<EventProvider>(context, listen: false);
-      final currentUserEmail = authProvider.user?['email'];
+     if (_formKey.currentState!.validate()) {
+       // Check if dates are selected
+       if (_selectedDateTime == null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Please select a start date and time')),
+         );
+         return;
+       }
+       if (_selectedEndDateTime == null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Please select an end date and time')),
+         );
+         return;
+       }
 
-      try {
-        final api = ApiService();
-        print('API Base URL: ${api.baseUrl}'); // Debug log
+       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+       final eventProvider = Provider.of<EventProvider>(context, listen: false);
+       final myEventsProvider = Provider.of<MyEventsProvider>(context, listen: false);
+       final currentUserEmail = authProvider.user?['email'];
 
-        final Map<String, dynamic> data = {
-          'title': _nameController.text,
-          'description': _descriptionController.text,
-          'start_time': _selectedDateTime?.toIso8601String() ?? '',
-          'end_time': _selectedEndDateTime?.toIso8601String() ?? '',
-          'location': _locationController.text,
-          'longitude': _selectedLongitude?.toString() ?? '',
-          'latitude': _selectedLatitude?.toString() ?? '',
-        };
+       try {
+         final api = ApiService();
+         print('API Base URL: ${api.baseUrl}'); // Debug log
 
-        print('Request data: $data'); // Debug log
+         final Map<String, dynamic> data = {
+           'title': _nameController.text,
+           'description': _descriptionController.text.isNotEmpty ? _descriptionController.text : '',
+           'start_time': _selectedDateTime!.toIso8601String(),
+           'end_time': _selectedEndDateTime!.toIso8601String(),
+           'location': _locationController.text,
+           'longitude': _selectedLongitude?.toString() ?? '',
+           'latitude': _selectedLatitude?.toString() ?? '',
+         };
 
-        List<MapEntry<String, File>>? files;
-        if (_selectedImagePath != null) {
-          files = [MapEntry('image', File(_selectedImagePath!))];
-        }
+         print('Request data: $data'); // Debug log
 
-        final response = await api.postMultipart(
-          '/events',
-          data: data,
-          files: files,
-        );
+         List<MapEntry<String, File>>? files;
+         if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) {
+           files = [MapEntry('image', File(_selectedImagePath!))];
+         }
 
-        print('Response: ${response.toJson()}'); // Debug log
+         final response = widget.eventToEdit != null
+             ? await api.putMultipart(
+                 '/events/${widget.eventToEdit!.id}',
+                 data: data,
+                 files: files,
+               )
+             : await api.postMultipart(
+                 '/events',
+                 data: data,
+                 files: files,
+               );
 
-        if (!mounted) return;
-        if (response.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event created successfully')),
-          );
-          Navigator.of(context).pop();
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(response.responseMessage)));
-        }
-      } catch (e) {
-        print('Submit form error: $e'); // Debug log
-        
-        // Fallback: Add event locally if API fails
-        final newEvent = EventModel(
-          name: _nameController.text,
-          dateTime: _selectedDateTime,
-          endTime: _selectedEndDateTime,
-          location: _locationController.text,
-          description: _descriptionController.text,
-          boxIsSelected: false,
-          isFavourite: false,
-          hasTicket: false,
-          eventImageUrl: _selectedImagePath,
-          createdBy: currentUserEmail,
-        );
-        
-        eventProvider.addEvent(newEvent);
-        
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event created successfully (offline mode)')),
-        );
-        Navigator.of(context).pop();
-      }
-    }
-  }
+         print('Response: ${response.toJson()}'); // Debug log
+
+         if (!mounted) return;
+         if (response.success) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully' : 'Event created successfully')),
+           );
+           // Reload my events if editing
+           if (widget.eventToEdit != null) {
+             await myEventsProvider.loadMyEvents();
+           }
+           Navigator.of(context).pop();
+         } else {
+           ScaffoldMessenger.of(
+             context,
+           ).showSnackBar(SnackBar(content: Text(response.responseMessage)));
+         }
+       } catch (e) {
+         print('Submit form error: $e'); // Debug log
+
+         // Fallback: Update or add event locally if API fails
+         final event = EventModel(
+           id: widget.eventToEdit?.id,
+           name: _nameController.text,
+           dateTime: _selectedDateTime,
+           endTime: _selectedEndDateTime,
+           location: _locationController.text,
+           description: _descriptionController.text,
+           boxIsSelected: false,
+           isFavourite: false,
+           hasTicket: false,
+           eventImageUrl: _selectedImagePath,
+           createdBy: currentUserEmail,
+         );
+
+         if (widget.eventToEdit != null) {
+           // For editing, we would need to update the event in the provider
+           // Since we don't have an update method, we'll reload
+           await myEventsProvider.loadMyEvents();
+         } else {
+           eventProvider.addEvent(event);
+         }
+
+         if (!mounted) return;
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully (offline mode)' : 'Event created successfully (offline mode)')),
+         );
+         Navigator.of(context).pop();
+       }
+     }
+   }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -171,7 +220,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const Appbar(title: 'Create Event'),
+      appBar: Appbar(title: widget.eventToEdit != null ? 'Edit Event' : 'Create Event'),
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -321,7 +370,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              CustomButton(text: 'Create Event', onPressed: _submitForm),
+              CustomButton(text: widget.eventToEdit != null ? 'Update Event' : 'Create Event', onPressed: _submitForm),
               const SizedBox(height: 20),
             ],
           ),

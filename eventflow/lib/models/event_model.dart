@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EventModel {
+  int? id;
   String name;
   DateTime? dateTime;
   DateTime? endTime;
@@ -14,6 +15,7 @@ class EventModel {
   String? createdByName; // User name of the event creator
 
   EventModel({
+    this.id,
     required this.name,
     this.dateTime,
     this.endTime,
@@ -50,6 +52,7 @@ class EventModel {
     }
     
     return EventModel(
+      id: json['id'],
       name: json['title'] ?? '',
       dateTime: json['start_time'] != null
           ? DateTime.tryParse(json['start_time'])
@@ -63,13 +66,14 @@ class EventModel {
       isFavourite: json['is_favourite'] ?? false,
       hasTicket: json['has_ticket'] ?? false,
       eventImageUrl: imageUrl,
-      createdBy: json['created_by'] ?? json['user_id']?.toString(),
+      createdBy: json['user']?['email'] ?? json['user_id']?.toString(),
       createdByName: json['created_by_name'] ?? json['user']?['name'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'title': name,
       'start_time': dateTime?.toIso8601String(),
       'end_time': endTime?.toIso8601String(),

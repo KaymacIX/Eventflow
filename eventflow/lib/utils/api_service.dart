@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   late final Dio _dio;
@@ -187,26 +189,45 @@ class ApiService {
         }
       });
 
-      // Add files
+      // Add files with proper MIME type detection
       if (files != null) {
         for (var fileEntry in files) {
           final file = fileEntry.value;
           final fileName = file.path.split('/').last;
+          
+          // Get MIME type from file extension
+          final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+          final mediaType = MediaType.parse(mimeType);
+          
+          print('Uploading file: $fileName with MIME type: $mimeType');
+          
           formData.files.add(
             MapEntry(
               fileEntry.key,
-              await MultipartFile.fromFile(file.path, filename: fileName),
+              await MultipartFile.fromFile(
+                file.path,
+                filename: fileName,
+                contentType: mediaType,
+              ),
             ),
           );
         }
       }
+
+      print('FormData fields: ${formData.fields.length}');
+      print('FormData files: ${formData.files.length}');
 
       final response = await _dio.post(
         path,
         data: formData,
         queryParameters: queryParameters,
         onSendProgress: onSendProgress,
-        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       return _handleResponse(response);
@@ -233,15 +254,26 @@ class ApiService {
         }
       });
 
-      // Add files
+      // Add files with proper MIME type detection
       if (files != null) {
         for (var fileEntry in files) {
           final file = fileEntry.value;
           final fileName = file.path.split('/').last;
+          
+          // Get MIME type from file extension
+          final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+          final mediaType = MediaType.parse(mimeType);
+          
+          print('Uploading file: $fileName with MIME type: $mimeType');
+          
           formData.files.add(
             MapEntry(
               fileEntry.key,
-              await MultipartFile.fromFile(file.path, filename: fileName),
+              await MultipartFile.fromFile(
+                file.path,
+                filename: fileName,
+                contentType: mediaType,
+              ),
             ),
           );
         }
@@ -252,7 +284,12 @@ class ApiService {
         data: formData,
         queryParameters: queryParameters,
         onSendProgress: onSendProgress,
-        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       return _handleResponse(response);
@@ -305,23 +342,60 @@ class ApiService {
       if (error.response != null) {
         try {
           final data = error.response!.data;
+          final statusCode = error.response!.statusCode ?? 500;
           
-          // Handle case where error response might not be a Map
+          // Handle Laravel validation errors (422 status code)
+          if (statusCode == 422 && data is Map<String, dynamic>) {
+            String errorMessage = 'Validation failed';
+            
+            // Check for Laravel validation error format
+            if (data.containsKey('message')) {
+              errorMessage = data['message'];
+            }
+            
+            // Get detailed errors if available
+            if (data.containsKey('errors') && data['errors'] is Map) {
+              final errors = data['errors'] as Map<String, dynamic>;
+              final errorsList = <String>[];
+              
+              errors.forEach((field, messages) {
+                if (messages is List) {
+                  errorsList.addAll(messages.map((m) => m.toString()));
+                } else {
+                  errorsList.add(messages.toString());
+                }
+              });
+              
+              if (errorsList.isNotEmpty) {
+                errorMessage = errorsList.join(', ');
+              }
+            }
+            
+            return ApiResponse(
+              success: false,
+              responseCode: statusCode,
+              responseMessage: errorMessage,
+              responseData: data['errors'],
+            );
+          }
+          
+          // Handle standard API response format
           if (data is Map<String, dynamic>) {
             return ApiResponse(
               success: false,
               responseCode:
-                  data['response_code'] ?? error.response!.statusCode ?? 500,
+                  data['response_code'] ?? statusCode,
               responseMessage: data['response_message'] ??
+                  data['message'] ??
                   error.message ??
                   'An error occurred',
-              responseData: data['response_data'],
+              responseData: data['response_data'] ?? data['errors'],
             );
           }
           
           return ApiResponse(
             success: false,
-            responseCode: error.response!.statusCode ?? 500,
+            responseCode: statusCode,
             responseMessage: error.message ?? 'An error occurred',
             responseData: null,
           );
