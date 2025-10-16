@@ -57,7 +57,7 @@ class AuthProvider with ChangeNotifier {
           print('DEBUG: User authenticated with stored data');
 
           // Update user events and load user-specific data after authentication
-          Future.delayed(const Duration(milliseconds: 100), () {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_context != null) {
               final eventProvider = Provider.of<EventProvider>(_context!, listen: false);
               final favoritesProvider = Provider.of<FavoritesProvider>(_context!, listen: false);
@@ -182,21 +182,6 @@ class AuthProvider with ChangeNotifier {
 
       // Clear local data
       await _clearAuthData();
-
-      // Clear other providers' data
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_context != null) {
-          final eventProvider = Provider.of<EventProvider>(_context!, listen: false);
-          final favoritesProvider = Provider.of<FavoritesProvider>(_context!, listen: false);
-          final ticketsProvider = Provider.of<TicketsProvider>(_context!, listen: false);
-          final myEventsProvider = Provider.of<MyEventsProvider>(_context!, listen: false);
-
-          eventProvider.clearEvents();
-          favoritesProvider.clearFavorites();
-          ticketsProvider.clearTickets();
-          myEventsProvider.clearEvents();
-        }
-      });
 
     } catch (e) {
       print('Logout error: $e');

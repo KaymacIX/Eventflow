@@ -103,110 +103,143 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   void _submitForm() async {
-     if (_formKey.currentState!.validate()) {
-       // Check if dates are selected
-       if (_selectedDateTime == null) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Please select a start date and time')),
-         );
-         return;
-       }
-       if (_selectedEndDateTime == null) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Please select an end date and time')),
-         );
-         return;
-       }
+      if (_formKey.currentState!.validate()) {
+        // Check if dates are selected
+        if (_selectedDateTime == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a start date and time')),
+          );
+          return;
+        }
+        if (_selectedEndDateTime == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select an end date and time')),
+          );
+          return;
+        }
 
-       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-       final eventProvider = Provider.of<EventProvider>(context, listen: false);
-       final myEventsProvider = Provider.of<MyEventsProvider>(context, listen: false);
-       final currentUserEmail = authProvider.user?['email'];
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final eventProvider = Provider.of<EventProvider>(context, listen: false);
+        final myEventsProvider = Provider.of<MyEventsProvider>(context, listen: false);
+        final currentUserEmail = authProvider.user?['email'];
 
-       try {
-         final api = ApiService();
-         print('API Base URL: ${api.baseUrl}'); // Debug log
+        print('DEBUG: Starting form submission');
+        print('DEBUG: Editing event: ${widget.eventToEdit != null}');
+        print('DEBUG: Event ID: ${widget.eventToEdit?.id}');
+        print('DEBUG: Event name: ${_nameController.text}');
 
-         final Map<String, dynamic> data = {
-           'title': _nameController.text,
-           'description': _descriptionController.text.isNotEmpty ? _descriptionController.text : '',
-           'start_time': _selectedDateTime!.toIso8601String(),
-           'end_time': _selectedEndDateTime!.toIso8601String(),
-           'location': _locationController.text,
-           'longitude': _selectedLongitude?.toString() ?? '',
-           'latitude': _selectedLatitude?.toString() ?? '',
-         };
+        try {
+          final api = ApiService();
+          print('DEBUG: API Base URL: ${api.baseUrl}');
 
-         print('Request data: $data'); // Debug log
+          final Map<String, dynamic> data = {
+            'title': _nameController.text,
+            'description': _descriptionController.text.isNotEmpty ? _descriptionController.text : '',
+            'start_time': _selectedDateTime!.toIso8601String(),
+            'end_time': _selectedEndDateTime!.toIso8601String(),
+            'location': _locationController.text,
+            'longitude': _selectedLongitude?.toString() ?? '',
+            'latitude': _selectedLatitude?.toString() ?? '',
+          };
 
-         List<MapEntry<String, File>>? files;
-         if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) {
-           files = [MapEntry('image', File(_selectedImagePath!))];
-         }
+          print('DEBUG: Request data: $data');
 
-         final response = widget.eventToEdit != null
-             ? await api.putMultipart(
-                 '/events/${widget.eventToEdit!.id}',
-                 data: data,
-                 files: files,
-               )
-             : await api.postMultipart(
-                 '/events',
-                 data: data,
-                 files: files,
-               );
+          List<MapEntry<String, File>>? files;
+          if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) {
+            print('DEBUG: Image path: $_selectedImagePath');
+            // Check if it's a URL or local file
+            if (_selectedImagePath!.startsWith('http://') || _selectedImagePath!.startsWith('https://')) {
+              print('DEBUG: Image is a URL, not including in update');
+              files = null; // Don't send URL as file
+            } else {
+              try {
+                final file = File(_selectedImagePath!);
+                if (await file.exists()) {
+                  files = [MapEntry('image', file)];
+                  print('DEBUG: Local file exists, including in update');
+                } else {
+                  print('DEBUG: Local file does not exist');
+                  files = null;
+                }
+              } catch (e) {
+                print('DEBUG: Error checking file: $e');
+                files = null;
+              }
+            }
+          } else {
+            print('DEBUG: No image selected');
+          }
 
-         print('Response: ${response.toJson()}'); // Debug log
+          final response = widget.eventToEdit != null
+              ? await api.putMultipart(
+                  '/events/${widget.eventToEdit!.id}',
+                  data: data,
+                  files: files,
+                )
+              : await api.postMultipart(
+                  '/events',
+                  data: data,
+                  files: files,
+                );
 
-         if (!mounted) return;
-         if (response.success) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully' : 'Event created successfully')),
-           );
-           // Reload my events if editing
-           if (widget.eventToEdit != null) {
-             await myEventsProvider.loadMyEvents();
-           }
-           Navigator.of(context).pop();
-         } else {
-           ScaffoldMessenger.of(
-             context,
-           ).showSnackBar(SnackBar(content: Text(response.responseMessage)));
-         }
-       } catch (e) {
-         print('Submit form error: $e'); // Debug log
+          print('DEBUG: Response: ${response.toJson()}');
 
-         // Fallback: Update or add event locally if API fails
-         final event = EventModel(
-           id: widget.eventToEdit?.id,
-           name: _nameController.text,
-           dateTime: _selectedDateTime,
-           endTime: _selectedEndDateTime,
-           location: _locationController.text,
-           description: _descriptionController.text,
-           boxIsSelected: false,
-           isFavourite: false,
-           hasTicket: false,
-           eventImageUrl: _selectedImagePath,
-           createdBy: currentUserEmail,
-         );
+          if (!mounted) return;
+          if (response.success) {
+            print('DEBUG: API call successful');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully' : 'Event created successfully')),
+            );
+            // Reload my events if editing
+            if (widget.eventToEdit != null) {
+              print('DEBUG: Reloading my events after edit');
+              await myEventsProvider.loadMyEvents();
+            }
+            Navigator.of(context).pop();
+          } else {
+            print('DEBUG: API call failed: ${response.responseMessage}');
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(response.responseMessage)));
+          }
+        } catch (e) {
+          print('DEBUG: Submit form error: $e');
+          print('DEBUG: Error type: ${e.runtimeType}');
+          // Note: DioException import would be needed for detailed error checking
 
-         if (widget.eventToEdit != null) {
-           // For editing, we would need to update the event in the provider
-           // Since we don't have an update method, we'll reload
-           await myEventsProvider.loadMyEvents();
-         } else {
-           eventProvider.addEvent(event);
-         }
+          // Fallback: Update or add event locally if API fails
+          print('DEBUG: Using fallback local update');
+          final event = EventModel(
+            id: widget.eventToEdit?.id,
+            name: _nameController.text,
+            dateTime: _selectedDateTime,
+            endTime: _selectedEndDateTime,
+            location: _locationController.text,
+            description: _descriptionController.text,
+            boxIsSelected: false,
+            isFavourite: false,
+            hasTicket: false,
+            eventImageUrl: _selectedImagePath,
+            createdBy: currentUserEmail,
+          );
 
-         if (!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully (offline mode)' : 'Event created successfully (offline mode)')),
-         );
-         Navigator.of(context).pop();
-       }
-     }
-   }
+          if (widget.eventToEdit != null) {
+            // For editing, we would need to update the event in the provider
+            // Since we don't have an update method, we'll reload
+            print('DEBUG: Reloading events after local fallback edit');
+            await myEventsProvider.loadMyEvents();
+          } else {
+            eventProvider.addEvent(event);
+          }
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(widget.eventToEdit != null ? 'Event updated successfully (offline mode)' : 'Event created successfully (offline mode)')),
+          );
+          Navigator.of(context).pop();
+        }
+      }
+    }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
